@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V2\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V2\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V2\AllowedIpController;
 use App\Http\Controllers\Api\V2\MeController;
+use App\Http\Controllers\Api\V2\ProfileController;
 use LaravelJsonApi\Laravel\Facades\JsonApiRoute;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
 
@@ -35,6 +36,7 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
     Route::middleware('auth.token')->group(function () {
         // Authenticated profile
         Route::get('/me', MeController::class);
+        Route::patch('/profile', [ProfileController::class, 'update']);
 
         Route::get('/allowed-ips', [AllowedIpController::class, 'index']);
         Route::post('/allowed-ips', [AllowedIpController::class, 'store']);
