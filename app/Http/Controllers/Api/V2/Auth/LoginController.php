@@ -6,60 +6,84 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V2\Auth\LoginRequest;
 use App\Models\User;
 use LaravelJsonApi\Core\Document\Error;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class LoginController extends Controller
 {
     /**
      * Handle the incoming request.
-     * Authenticates user and returns OAuth token
+     * Authenticates user and returns authentication token
      *
      * @param \App\Http\Requests\Api\V2\Auth\LoginRequest $request
      *
-     * @return \Symfony\Component\HttpFoundation\Response|\LaravelJsonApi\Core\Document\Error
+     * @return \Illuminate\Http\JsonResponse|\LaravelJsonApi\Core\Document\Error
      * @throws \Exception
      */
-    public function __invoke(LoginRequest $request): Response|Error
+    public function __invoke(LoginRequest $request): JsonResponse|Error
     {
-        // Check if user is blocked
+        // Find user by email
         $user = User::where('email', $request->email)->first();
-        if ($user && $user->isBlocked()) {
-            return Error::fromArray([
-                'title'  => 'Unauthorized',
-                'detail' => 'Your account has been blocked. Please contact support.',
-                'status' => Response::HTTP_UNAUTHORIZED,
-            ]);
+
+        // Check if user exists
+        if (!$user) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Unauthorized',
+                        'detail' => 'Invalid email or password',
+                        'status' => Response::HTTP_UNAUTHORIZED,
+                    ]
+                ]
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
-        $client = DB::table('oauth_clients')->where('password_client', 1)->first();
-
-        $oauthRequest = Request::create(config('app.url') . '/oauth/token', 'POST', [
-            'grant_type'    => 'password',
-            'client_id'     => $client->id,
-            'client_secret' => $client->secret,
-            'username'      => $request->email,
-            'password'      => $request->password,
-            'scope'         => '',
-        ]);
-
-        /** @var \Illuminate\Http\Response $response */
-        $response = app()->handle($oauthRequest);
-
-        if ($response->getStatusCode() !== Response::HTTP_OK) {
-            return Error::fromArray([
-                'title'  => Response::$statusTexts[Response::HTTP_BAD_REQUEST],
-                'detail' => 'Invalid email or password',
-                'status' => Response::HTTP_BAD_REQUEST,
-            ]);
+        // Check if user is blocked
+        if ($user->isBlocked()) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Unauthorized',
+                        'detail' => 'Your account has been blocked. Please contact support.',
+                        'status' => Response::HTTP_UNAUTHORIZED,
+                    ]
+                ]
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Update last active timestamp on successful login
-        if ($user) {
-            $user->updateLastActive();
+        // Verify password
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Unauthorized',
+                        'detail' => 'Invalid email or password',
+                        'status' => Response::HTTP_UNAUTHORIZED,
+                    ]
+                ]
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
-        return $response;
+        // Generate new token and save to remember_token
+        $token = Str::random(80);
+        $user->remember_token = $token;
+        $user->last_active_at = now();
+        $user->save();
+
+        // Return token in format compatible with frontend
+        return response()->json([
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'expires_in'   => null, // Token doesn't expire
+            'user' => [
+                'id'       => $user->id,
+                'name'     => $user->name,
+                'email'    => $user->email,
+                'username' => $user->username,
+                'type'     => $user->type,
+            ]
+        ], Response::HTTP_OK);
     }
 }

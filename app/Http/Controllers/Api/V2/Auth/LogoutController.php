@@ -10,7 +10,7 @@ class LogoutController extends Controller
 {
     /**
      * Handle logout request
-     * Revokes the current access token
+     * Clears the remember_token
      *
      * @param \Illuminate\Http\Request $request
      *
@@ -20,8 +20,9 @@ class LogoutController extends Controller
     {
         $user = auth()->user();
 
-        if ($user && $user->token()) {
-            $user->token()->revoke();
+        if ($user) {
+            $user->remember_token = null;
+            $user->save();
         }
 
         return response()->json(

@@ -25,7 +25,7 @@ use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
 
 Route::prefix('v2')->middleware('json.api')->group(function () {
     Route::post('/login', LoginController::class)->name('login');
-    Route::post('/logout', LogoutController::class)->middleware('auth:api');
+    Route::post('/logout', LogoutController::class)->middleware('auth.token');
     Route::post('/register', RegisterController::class);
     Route::post('/password-forgot', ForgotPasswordController::class);
     Route::post('/password-reset', ResetPasswordController::class)->name('password.reset');
