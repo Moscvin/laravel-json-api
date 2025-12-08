@@ -78,11 +78,16 @@ class LoginController extends Controller
             'token_type'   => 'Bearer',
             'expires_in'   => null, // Token doesn't expire
             'user' => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'email'    => $user->email,
-                'username' => $user->username,
-                'type'     => $user->type,
+                'id'             => $user->id,
+                'name'           => $user->name,
+                'username'       => $user->username,
+                'email'          => $user->email,
+                'phone'          => $user->phone,
+                'type'           => $user->type,
+                'is_blocked'     => $user->is_blocked,
+                'last_active_at' => optional($user->last_active_at)->toIso8601String(),
+                'created_at'     => optional($user->created_at)->toIso8601String(),
+                'updated_at'     => optional($user->updated_at)->toIso8601String(),
             ]
         ], Response::HTTP_OK);
     }
