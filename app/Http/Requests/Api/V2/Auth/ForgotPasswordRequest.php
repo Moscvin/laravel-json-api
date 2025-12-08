@@ -24,8 +24,21 @@ class ForgotPasswordRequest extends FormRequest
     public function rules()
     {
         return [
-            'redirect_url' => ['required', 'url'],
             'email' => ['required', 'email', 'exists:users,email'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
+    public function messages()
+    {
+        return [
+            'email.required' => 'Email is required',
+            'email.email' => 'Please enter a valid email address',
+            'email.exists' => 'No account found with this email',
         ];
     }
 }

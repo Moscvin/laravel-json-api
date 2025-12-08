@@ -9,7 +9,8 @@ use Symfony\Component\HttpFoundation\Response;
 class LogoutController extends Controller
 {
     /**
-     * Handle the incoming request.
+     * Handle logout request
+     * Revokes the current access token
      *
      * @param \Illuminate\Http\Request $request
      *
@@ -17,8 +18,15 @@ class LogoutController extends Controller
      */
     public function __invoke(Request $request): Response
     {
-        auth()->user()->token()->revoke();
+        $user = auth()->user();
 
-        return response()->json([], Response::HTTP_NO_CONTENT);
+        if ($user && $user->token()) {
+            $user->token()->revoke();
+        }
+
+        return response()->json(
+            ['message' => 'Successfully logged out'],
+            Response::HTTP_OK
+        );
     }
 }

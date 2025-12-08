@@ -24,9 +24,26 @@ class ResetPasswordRequest extends FormRequest
     public function rules()
     {
         return [
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', 'min:8'],
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email', 'exists:users,email'],
+            'password' => ['required', 'string', 'confirmed', 'min:8'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
+    public function messages()
+    {
+        return [
+            'token.required' => 'Reset token is required',
+            'email.required' => 'Email is required',
+            'email.exists' => 'No account found with this email',
+            'password.required' => 'Password is required',
+            'password.min' => 'Password must be at least 8 characters',
+            'password.confirmed' => 'Passwords do not match',
         ];
     }
 }
