@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\V2\Auth\LogoutController;
 use App\Http\Controllers\Api\V2\Auth\RegisterController;
 use App\Http\Controllers\Api\V2\Auth\ForgotPasswordController;
 use App\Http\Controllers\Api\V2\Auth\ResetPasswordController;
-use App\Http\Controllers\Api\V2\MeController;
+use App\Http\Controllers\Api\V2\AllowedIpController;
 use LaravelJsonApi\Laravel\Facades\JsonApiRoute;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
 
@@ -29,6 +29,13 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
     Route::post('/register', RegisterController::class);
     Route::post('/password-forgot', ForgotPasswordController::class);
     Route::post('/password-reset', ResetPasswordController::class)->name('password.reset');
+
+    // Allowed IPs routes (admin only)
+    Route::middleware('auth.token')->group(function () {
+        Route::get('/allowed-ips', [AllowedIpController::class, 'index']);
+        Route::post('/allowed-ips', [AllowedIpController::class, 'store']);
+        Route::delete('/allowed-ips/{id}', [AllowedIpController::class, 'destroy']);
+    });
 });
 
 JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
