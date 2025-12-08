@@ -41,14 +41,12 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
         Route::get('/allowed-ips', [AllowedIpController::class, 'index']);
         Route::post('/allowed-ips', [AllowedIpController::class, 'store']);
         Route::delete('/allowed-ips/{id}', [AllowedIpController::class, 'destroy']);
-
-        // User management (root only)
-        Route::get('/users', [UserManagementController::class, 'index']);
-        Route::post('/users', [UserManagementController::class, 'store']);
-        Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
     });
 });
 
-JsonApiRoute::server('v2')->prefix('v2')->resources(function (ResourceRegistrar $server) {
-    $server->resource('users', JsonApiController::class);
+// User management routes - without json.api middleware to allow plain JSON
+Route::prefix('v2')->middleware('auth.token')->group(function () {
+    Route::get('/users', [UserManagementController::class, 'index']);
+    Route::post('/users', [UserManagementController::class, 'store']);
+    Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
 });

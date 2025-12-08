@@ -70,7 +70,10 @@ class UserManagementController extends Controller
             ], Response::HTTP_FORBIDDEN);
         }
 
-        $validator = Validator::make($request->all(), [
+        // Extract data - plain JSON format from custom route
+        $data = $request->all();
+
+        $validator = Validator::make($data, [
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username',
             'email' => 'required|email|max:255|unique:users,email',
@@ -78,7 +81,6 @@ class UserManagementController extends Controller
             'phone' => 'nullable|string|max:20',
             'type' => 'required|in:user,root',
         ]);
-
         if ($validator->fails()) {
             return response()->json([
                 'errors' => collect($validator->errors()->messages())->map(function ($errors, $field) {
@@ -92,30 +94,51 @@ class UserManagementController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $newUser = User::create([
-            'name' => $request->name,
-            'username' => $request->username,
-            'email' => $request->email,
-            'password' => $request->password,
-            'phone' => $request->phone,
-            'type' => $request->type,
-            'is_blocked' => false,
-            'remember_token' => Str::random(80),
-        ]);
+        try {
+            $newUser = User::create([
+                'name' => $data['name'],
+                'username' => $data['username'],
+                'email' => $data['email'],
+                'password' => $data['password'],
+                'phone' => $data['phone'] ?? null,
+                'type' => $data['type'],
+                'is_blocked' => false,
+                'remember_token' => Str::random(80),
+            ]);
 
-        return response()->json([
-            'user' => [
-                'id' => $newUser->id,
-                'name' => $newUser->name,
-                'username' => $newUser->username,
-                'email' => $newUser->email,
-                'phone' => $newUser->phone,
-                'type' => $newUser->type,
-                'is_blocked' => $newUser->is_blocked,
-                'created_at' => optional($newUser->created_at)->toIso8601String(),
-            ],
-            'message' => 'User created successfully.'
-        ], Response::HTTP_CREATED);
+            return response()->json([
+                'user' => [
+                    'id' => $newUser->id,
+                    'name' => $newUser->name,
+                    'username' => $newUser->username,
+                    'email' => $newUser->email,
+                    'phone' => $newUser->phone,
+                    'type' => $newUser->type,
+                    'is_blocked' => $newUser->is_blocked,
+                    'created_at' => optional($newUser->created_at)->toIso8601String(),
+                ],
+                'message' => 'User created successfully.'
+            ], Response::HTTP_CREATED);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle database constraint violations
+            $message = 'Failed to create user';
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                if (str_contains($e->getMessage(), 'users_username_unique')) {
+                    $message = 'This username is already taken';
+                } elseif (str_contains($e->getMessage(), 'users_email_unique')) {
+                    $message = 'This email is already registered';
+                }
+            }
+            return response()->json([
+                'errors' => [
+                    [
+                        'title' => 'Database Error',
+                        'detail' => $message,
+                        'status' => Response::HTTP_CONFLICT,
+                    ]
+                ]
+            ], Response::HTTP_CONFLICT);
+        }
     }
 
     /**
