@@ -48,5 +48,6 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
 Route::prefix('v2')->middleware('auth.token')->group(function () {
     Route::get('/users', [UserManagementController::class, 'index']);
     Route::post('/users', [UserManagementController::class, 'store']);
+    Route::put('/users/{id}', [UserManagementController::class, 'update']);
     Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
 });
