@@ -32,9 +32,16 @@ class UserSchema extends Schema
         return [
             ID::make(),
             Str::make('name')->sortable(),
+            Str::make('username')->sortable(),
             Str::make('email')->sortable(),
+            Str::make('phone'),
+            Str::make('type')->sortable(),
+            Str::make('is_blocked'),
             Str::make('password')->hidden(),
             Str::make('password_confirmation')->hidden(),
+            DateTime::make('last_active_at')
+                ->serializeUsing(static fn(?Carbon $value) => $value?->format('Y-m-d H:i:s'))
+                ->sortable(),
             DateTime::make('created_at')
                 ->serializeUsing(static fn(?Carbon $value) => $value?->format('Y-m-d H:i:s'))
                 ->sortable()
@@ -66,5 +73,4 @@ class UserSchema extends Schema
     {
         return PagePagination::make();
     }
-
 }

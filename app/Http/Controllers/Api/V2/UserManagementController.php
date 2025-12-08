@@ -44,7 +44,7 @@ class UserManagementController extends Controller
                 'created_at' => optional($u->created_at)->toIso8601String(),
                 'updated_at' => optional($u->updated_at)->toIso8601String(),
             ];
-        });
+        });;
 
         return response()->json([
             'users' => $users
