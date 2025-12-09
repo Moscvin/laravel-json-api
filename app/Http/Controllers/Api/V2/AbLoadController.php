@@ -318,6 +318,70 @@ class AbLoadController extends Controller
     }
 
     /**
+     * Delete load (root only)
+     */
+    public function destroy($id): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title' => 'Unauthorized',
+                        'detail' => 'Authentication required',
+                        'status' => Response::HTTP_UNAUTHORIZED,
+                    ]
+                ]
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if ($user->type !== 'root') {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title' => 'Forbidden',
+                        'detail' => 'Only root users can delete loads',
+                        'status' => Response::HTTP_FORBIDDEN,
+                    ]
+                ]
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $load = AbLoad::find($id);
+
+        if (!$load) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title' => 'Not Found',
+                        'detail' => 'Load not found',
+                        'status' => Response::HTTP_NOT_FOUND,
+                    ]
+                ]
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $load->delete();
+
+            return response()->json([
+                'message' => 'Load deleted successfully.'
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title' => 'Error',
+                        'detail' => 'Failed to delete load: ' . $e->getMessage(),
+                        'status' => Response::HTTP_INTERNAL_SERVER_ERROR,
+                    ]
+                ]
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * Get available status values
      */
     public function getStatuses(): JsonResponse
