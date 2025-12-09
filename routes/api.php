@@ -58,6 +58,8 @@ Route::prefix('v2')->middleware('auth.token')->group(function () {
 
     // AbLoads routes
     Route::get('/loads', [AbLoadController::class, 'index']);
-    Route::get('/loads/{id}', [AbLoadController::class, 'show']);
-    Route::patch('/loads/{id}', [AbLoadController::class, 'update']);
+    Route::get('/loads/statuses', [AbLoadController::class, 'getStatuses']);
+    Route::post('/loads/show', [AbLoadController::class, 'show']);
+    Route::post('/loads/{id}', [AbLoadController::class, 'update']);
+    Route::delete('/loads/{id}', [AbLoadController::class, 'destroy']);
 });

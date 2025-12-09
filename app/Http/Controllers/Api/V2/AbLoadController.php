@@ -120,9 +120,9 @@ class AbLoadController extends Controller
     }
 
     /**
-     * Get single load by ID
+     * Get single load by ID from body
      */
-    public function show($id): JsonResponse
+    public function show(Request $request): JsonResponse
     {
         $user = auth()->user();
 
@@ -138,7 +138,19 @@ class AbLoadController extends Controller
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        $load = AbLoad::find($id);
+        if (!$request->filled('id')) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title' => 'Validation Error',
+                        'detail' => 'The id field is required',
+                        'status' => Response::HTTP_UNPROCESSABLE_ENTITY,
+                    ]
+                ]
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $load = AbLoad::find($request->input('id'));
 
         if (!$load) {
             return response()->json([
@@ -171,22 +183,22 @@ class AbLoadController extends Controller
     }
 
     /**
-     * Update load (root only)
+     * Update load (user can update own loads, root can update all)
      */
     public function update(Request $request, $id): JsonResponse
     {
         $user = auth()->user();
 
-        if ($user->type !== 'root') {
+        if (!$user) {
             return response()->json([
                 'errors' => [
                     [
-                        'title' => 'Forbidden',
-                        'detail' => 'Only root users can update loads',
-                        'status' => Response::HTTP_FORBIDDEN,
+                        'title' => 'Unauthorized',
+                        'detail' => 'Authentication required',
+                        'status' => Response::HTTP_UNAUTHORIZED,
                     ]
                 ]
-            ], Response::HTTP_FORBIDDEN);
+            ], Response::HTTP_UNAUTHORIZED);
         }
 
         $load = AbLoad::find($id);
@@ -203,35 +215,39 @@ class AbLoadController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
+        // Check authorization - user can edit own loads, root can edit all
+        if ($user->type !== 'root' && $load->uid !== $user->id) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title' => 'Forbidden',
+                        'detail' => 'Not authorized to update this load',
+                        'status' => Response::HTTP_FORBIDDEN,
+                    ]
+                ]
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         $data = $request->all();
 
+        $allowedStatuses = [
+            'Status Not Set',
+            'In Sales Process',
+            'Sale Closed',
+            'Picked Up',
+            'Delivered'
+        ];
+
         $rules = [
-            'status' => 'sometimes|string|max:255',
-            'commodity' => 'sometimes|string|max:255',
-            'rate' => 'sometimes|numeric|min:0',
+            'status' => 'sometimes|string|in:' . implode(',', $allowedStatuses),
             'manual_rate' => 'sometimes|numeric|min:0',
-            'comment' => 'nullable|string|max:255',
             'gate_check_in' => 'nullable|string|max:255',
-            'pull_date' => 'nullable|string|max:255',
-            'pull_time' => 'nullable|string|max:255',
-            'pull_datetime' => 'nullable|date_format:Y-m-d H:i:s',
             'manual_pull_date' => 'nullable|string|max:255',
             'manual_pull_time' => 'nullable|string|max:255',
-            'manual_pull_datetime' => 'nullable|date_format:Y-m-d H:i:s',
-            'consignee' => 'nullable|string|max:255',
-            'delivery_date' => 'nullable|string|max:255',
-            'delivery_time' => 'nullable|string|max:255',
-            'delivery_datetime' => 'nullable|date_format:Y-m-d H:i:s',
             'manual_delivery_date' => 'nullable|string|max:255',
             'manual_delivery_time' => 'nullable|string|max:255',
-            'manual_delivery_datetime' => 'nullable|date_format:Y-m-d H:i:s',
-            'consignee_2' => 'nullable|string|max:255',
-            'delivery_date_2' => 'nullable|string|max:255',
-            'delivery_time_2' => 'nullable|string|max:255',
-            'delivery_datetime_2' => 'nullable|date_format:Y-m-d H:i:s',
             'manual_delivery_date_2' => 'nullable|string|max:255',
             'manual_delivery_time_2' => 'nullable|string|max:255',
-            'manual_delivery_datetime_2' => 'nullable|date_format:Y-m-d H:i:s',
         ];
 
         $validator = Validator::make($data, $rules);
@@ -250,13 +266,38 @@ class AbLoadController extends Controller
         }
 
         try {
-            // Update only provided fields
-            foreach ($rules as $field => $rule) {
-                if (isset($data[$field])) {
-                    $load->{$field} = $data[$field];
-                }
+            // Prepare data for update
+            $updateData = [];
+
+            if (isset($data['status'])) {
+                $updateData['status'] = $data['status'];
+            }
+            if (isset($data['manual_rate'])) {
+                $updateData['manual_rate'] = $data['manual_rate'];
+            }
+            if (isset($data['gate_check_in'])) {
+                $updateData['gate_check_in'] = $data['gate_check_in'];
+            }
+            if (isset($data['manual_pull_date'])) {
+                $updateData['manual_pull_date'] = $data['manual_pull_date'];
+            }
+            if (isset($data['manual_pull_time'])) {
+                $updateData['manual_pull_time'] = $data['manual_pull_time'];
+            }
+            if (isset($data['manual_delivery_date'])) {
+                $updateData['manual_delivery_date'] = $data['manual_delivery_date'];
+            }
+            if (isset($data['manual_delivery_time'])) {
+                $updateData['manual_delivery_time'] = $data['manual_delivery_time'];
+            }
+            if (isset($data['manual_delivery_date_2'])) {
+                $updateData['manual_delivery_date_2'] = $data['manual_delivery_date_2'];
+            }
+            if (isset($data['manual_delivery_time_2'])) {
+                $updateData['manual_delivery_time_2'] = $data['manual_delivery_time_2'];
             }
 
+            $load->fill($updateData);
             $load->save();
 
             return response()->json([
@@ -274,5 +315,21 @@ class AbLoadController extends Controller
                 ]
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Get available status values
+     */
+    public function getStatuses(): JsonResponse
+    {
+        return response()->json([
+            'statuses' => [
+                'Status Not Set',
+                'In Sales Process',
+                'Sale Closed',
+                'Picked Up',
+                'Delivered'
+            ]
+        ], Response::HTTP_OK);
     }
 }
