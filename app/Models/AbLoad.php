@@ -9,7 +9,7 @@ class AbLoad extends Model
 {
     use HasFactory;
 
-    protected $table = 'ab_loads';
+    protected $table = 'a_b_loads';
 
     /**
      * The attributes that are mass assignable.

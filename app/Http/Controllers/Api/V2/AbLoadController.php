@@ -96,14 +96,25 @@ class AbLoadController extends Controller
             return $this->formatLoadData($load);
         });
 
-        $totalLoads = $query->count();
-        $statuses = AbLoad::select('status')->distinct()->pluck('status')->toArray();
+        // Build base query for stats
+        $statsQuery = AbLoad::query();
+        if ($user->type !== 'root') {
+            $statsQuery->where('uid', $user->id);
+        }
+
+        // Get counts by status
+        $statusCounts = $statsQuery->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        $totalLoads = $statsQuery->count();
 
         return response()->json([
             'loads' => $loads,
             'stats' => [
                 'total' => $totalLoads,
-                'statuses' => $statuses,
+                'by_status' => $statusCounts,
             ]
         ], Response::HTTP_OK);
     }
