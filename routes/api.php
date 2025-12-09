@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V2\MeController;
 use App\Http\Controllers\Api\V2\ProfileController;
 use App\Http\Controllers\Api\V2\UpdatePasswordController;
 use App\Http\Controllers\Api\V2\UserManagementController;
+use App\Http\Controllers\Api\V2\AbLoadController;
 use LaravelJsonApi\Laravel\Facades\JsonApiRoute;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
 
@@ -54,4 +55,9 @@ Route::prefix('v2')->middleware('auth.token')->group(function () {
     Route::post('/users/{id}/toggle-block', [UserManagementController::class, 'toggleBlockStatus']);
     Route::patch('/users/{id}/profile', [UserManagementController::class, 'editProfile']);
     Route::post('/allowed-ips/delete', [AllowedIpController::class, 'destroyByBody']);
+
+    // AbLoads routes
+    Route::get('/loads', [AbLoadController::class, 'index']);
+    Route::get('/loads/{id}', [AbLoadController::class, 'show']);
+    Route::patch('/loads/{id}', [AbLoadController::class, 'update']);
 });
