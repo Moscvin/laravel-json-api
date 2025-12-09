@@ -116,6 +116,20 @@ class AllowedIpController extends Controller
             ], Response::HTTP_BAD_REQUEST);
         }
 
+        // Check if IP already exists
+        $existingIp = AllowedIp::where('ip', $ip)->first();
+        if ($existingIp) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Conflict',
+                        'detail' => 'This IP address already exists',
+                        'status' => Response::HTTP_CONFLICT,
+                    ]
+                ]
+            ], Response::HTTP_CONFLICT);
+        }
+
         $allowedIp = AllowedIp::create(['ip' => $ip]);
 
         return response()->json([
@@ -157,6 +171,76 @@ class AllowedIpController extends Controller
                     ]
                 ]
             ], Response::HTTP_FORBIDDEN);
+        }
+
+        $allowedIp = AllowedIp::find($id);
+
+        if (!$allowedIp) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Not Found',
+                        'detail' => 'Allowed IP not found',
+                        'status' => Response::HTTP_NOT_FOUND,
+                    ]
+                ]
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $allowedIp->delete();
+
+        return response()->json([
+            'message' => 'Allowed IP deleted successfully'
+        ], Response::HTTP_OK);
+    }
+
+    /**
+     * Delete allowed IP by ID from request body (root only)
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroyByBody(): JsonResponse
+    {
+        $user = auth()->user();
+
+        // Check if user is authenticated
+        if (!$user) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Unauthorized',
+                        'detail' => 'Authentication required',
+                        'status' => Response::HTTP_UNAUTHORIZED,
+                    ]
+                ]
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Check if user is root
+        if ($user->type !== 'root') {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Forbidden',
+                        'detail' => 'Only root users can access this resource',
+                        'status' => Response::HTTP_FORBIDDEN,
+                    ]
+                ]
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $id = request()->input('id');
+
+        if (!$id) {
+            return response()->json([
+                'errors' => [
+                    [
+                        'title'  => 'Bad Request',
+                        'detail' => 'ID is required',
+                        'status' => Response::HTTP_BAD_REQUEST,
+                    ]
+                ]
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $allowedIp = AllowedIp::find($id);

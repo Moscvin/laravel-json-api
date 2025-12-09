@@ -22,6 +22,13 @@ class AuthenticateWithToken
         $token = $request->bearerToken();
 
         if (!$token) {
+            $authHeader = $request->header('Authorization');
+            if ($authHeader && strpos($authHeader, 'Bearer ') === 0) {
+                $token = substr($authHeader, 7);
+            }
+        }
+
+        if (!$token) {
             return response()->json([
                 'errors' => [
                     [
