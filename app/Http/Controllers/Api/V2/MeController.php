@@ -21,11 +21,6 @@ class MeController extends Controller
                 'username'       => $user->username,
                 'email'          => $user->email,
                 'phone'          => $user->phone,
-                'type'           => $user->type,
-                'is_blocked'     => $user->is_blocked,
-                'last_active_at' => optional($user->last_active_at)->toIso8601String(),
-                'created_at'     => optional($user->created_at)->toIso8601String(),
-                'updated_at'     => optional($user->updated_at)->toIso8601String(),
             ],
         ]);
     }

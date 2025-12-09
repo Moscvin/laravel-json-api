@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V2\Auth\ResetPasswordController;
 use App\Http\Controllers\Api\V2\AllowedIpController;
 use App\Http\Controllers\Api\V2\MeController;
 use App\Http\Controllers\Api\V2\ProfileController;
+use App\Http\Controllers\Api\V2\UpdatePasswordController;
 use App\Http\Controllers\Api\V2\UserManagementController;
 use LaravelJsonApi\Laravel\Facades\JsonApiRoute;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
@@ -36,8 +37,9 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
     // Allowed IPs routes (admin only)
     Route::middleware('auth.token')->group(function () {
         // Authenticated profile
-        Route::get('/me', MeController::class);
+        Route::get('/profile', MeController::class);
         Route::patch('/profile', [ProfileController::class, 'update']);
+        Route::patch('/password', UpdatePasswordController::class);
         Route::get('/allowed-ips', [AllowedIpController::class, 'index']);
         Route::post('/allowed-ips', [AllowedIpController::class, 'store']);
         Route::delete('/allowed-ips/{id}', [AllowedIpController::class, 'destroy']);

