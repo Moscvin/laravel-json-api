@@ -49,6 +49,9 @@ Route::prefix('v2')->middleware('auth.token')->group(function () {
     Route::get('/users', [UserManagementController::class, 'index']);
     Route::post('/users', [UserManagementController::class, 'store']);
     Route::put('/users/{id}', [UserManagementController::class, 'update']);
+    Route::post('/users/update', [UserManagementController::class, 'updateByBody']);
     Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
+    Route::post('/users/{id}/toggle-block', [UserManagementController::class, 'toggleBlockStatus']);
+    Route::patch('/users/{id}/profile', [UserManagementController::class, 'editProfile']);
     Route::post('/allowed-ips/delete', [AllowedIpController::class, 'destroyByBody']);
 });
