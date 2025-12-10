@@ -43,6 +43,7 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
         Route::patch('/password', UpdatePasswordController::class);
         Route::get('/allowed-ips', [AllowedIpController::class, 'index']);
         Route::post('/allowed-ips', [AllowedIpController::class, 'store']);
+        Route::delete('/allowed-ips/{id}', [AllowedIpController::class, 'destroy']);
     });
 });
 
