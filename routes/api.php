@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V2\ProfileController;
 use App\Http\Controllers\Api\V2\UpdatePasswordController;
 use App\Http\Controllers\Api\V2\UserManagementController;
 use App\Http\Controllers\Api\V2\AbLoadController;
+use App\Http\Controllers\Api\V2\SmartTenderingController;
 use LaravelJsonApi\Laravel\Facades\JsonApiRoute;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
 
@@ -30,6 +31,7 @@ use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
 
 Route::prefix('v2')->middleware('json.api')->group(function () {
     Route::post('/login', LoginController::class)->name('login');
+    Route::post('/smart-tendering/token', [SmartTenderingController::class, 'token']);
     Route::post('/logout', LogoutController::class)->middleware('auth.token');
     Route::post('/register', RegisterController::class);
     Route::post('/password-forgot', ForgotPasswordController::class);
