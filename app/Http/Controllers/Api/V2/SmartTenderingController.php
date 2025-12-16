@@ -17,6 +17,17 @@ class SmartTenderingController extends Controller
         // Optional override of hostname to resolve theme
         $hostname = $request->input('hostname') ?: 'www.smart-tendering.com';
 
+        // If a static BEARER_TOKEN is provided in .env, return it immediately
+        $staticToken = env('BEARER_TOKEN');
+        if ($staticToken) {
+            return response()->json([
+                'access_token' => $staticToken,
+                'token_type' => 'Bearer',
+                // large expires_in so the frontend treats it as non-expiring
+                'expires_in' => 315360000 // ~10 years in seconds
+            ]);
+        }
+
         if (! $username || ! $password) {
             return response()->json(['error' => 'username and password required (or set SMART_TENDERING_USER/PASS in .env)'], 422);
         }
@@ -57,15 +68,28 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'client_id not available (set SMART_TENDERING_CLIENT_ID or resolve_theme must return auth_client_id)'], 500);
         }
 
-        $payload = [
-            'client_id' => $clientId,
-            'username' => $username,
-            'password' => $password,
-            'realm' => $realm,
-            'grant_type' => 'http://auth0.com/oauth/grant-type/password-realm',
-            'audience' => $audience,
-            'scope' => 'openid'
-        ];
+        // If a client secret is provided in env, prefer client_credentials (M2M)
+        $clientSecret = env('SMART_TENDERING_CLIENT_SECRET');
+
+        if ($clientSecret) {
+            $payload = [
+                'client_id' => $clientId,
+                'client_secret' => $clientSecret,
+                'grant_type' => 'client_credentials',
+                'audience' => $audience,
+            ];
+        } else {
+            // fallback to resource-owner password (password-realm)
+            $payload = [
+                'client_id' => $clientId,
+                'username' => $username,
+                'password' => $password,
+                'realm' => $realm,
+                'grant_type' => 'http://auth0.com/oauth/grant-type/password-realm',
+                'audience' => $audience,
+                'scope' => 'openid'
+            ];
+        }
 
         try {
             $resp = Http::withHeaders(['Content-Type' => 'application/json'])->post($authUrl, $payload);
