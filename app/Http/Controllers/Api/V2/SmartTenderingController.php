@@ -71,12 +71,29 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
+        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2016.7/users/me');
+        $headers = [
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ];
+        // Adaugă x-tnx-auth0-tenant și x-tnx-org dacă sunt prezente
+        foreach (
+            [
+                'x-tnx-auth0-tenant',
+                'x-tnx-org',
+            ] as $h
+        ) {
+            if ($request->hasHeader($h)) {
+                $headers[$h] = $request->header($h);
+            } elseif ($request->has($h)) {
+                $headers[$h] = $request->input($h);
+            }
+        }
+
         try {
-            // Folosește API-ul test care corespunde cu audience-ul din token
-            $resp = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
-            ])->timeout(30)->get('https://api.test.transport-ninja.com/v2016.7/users/me');
+            $resp = Http::withHeaders($headers)
+                ->timeout(30)
+                ->get($endpoint);
 
             if ($resp->failed()) {
                 return response()->json([
