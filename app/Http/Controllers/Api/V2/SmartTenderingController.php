@@ -15,16 +15,13 @@ class SmartTenderingController extends Controller
     public function token(Request $request)
     {
         $username = $request->input('username', 'ted@bvbfreight.com');
-        $password = $request->input('password', 'Sasamba@2025$$');
-        $clientId = 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe';
-        $realm = 'Username-Password-Authentication';
-        $grantType = 'http://auth0.com/oauth/grant-type/password-realm';
-
-        // Folosește doar audience-ul de producție!
-        $audience = 'https://api.tnx.co.nz';
-
-        $scope = 'openid';
-        $authUrl = 'https://transport-ninja.auth0.com/oauth/token';
+        $password = $request->input('password', 'Devveloper@2025');
+        $clientId = $request->input('client_id', 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe');
+        $realm = $request->input('realm', 'Username-Password-Authentication');
+        $grantType = $request->input('grant_type', 'http://auth0.com/oauth/grant-type/password-realm');
+        $audience = $request->input('audience', 'https://api.tnx.co.nz');
+        $scope = $request->input('scope', 'openid');
+        $authUrl = $request->input('auth_url', 'https://transport-ninja.auth0.com/oauth/token');
 
         $payload = [
             'client_id' => $clientId,
@@ -69,13 +66,29 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
-        try {
+        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2016.7/users/me');
+        $headers = [
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ];
+        // Permite headere custom pentru test (ex: x-tnx-auth0-tenant, x-tnx-org)
+        foreach (
+            [
+                'x-tnx-auth0-tenant',
+                'x-tnx-org',
+            ] as $h
+        ) {
+            if ($request->hasHeader($h)) {
+                $headers[$h] = $request->header($h);
+            } elseif ($request->has($h)) {
+                $headers[$h] = $request->input($h);
+            }
+        }
 
-            // Folosește doar endpoint-ul de producție!
-            $resp = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
-            ])->timeout(30)->get('https://api.tnx.co.nz/v2016.7/users/me');
+        try {
+            $resp = Http::withHeaders($headers)
+                ->timeout(30)
+                ->get($endpoint);
 
             if ($resp->failed()) {
                 return response()->json([
@@ -104,18 +117,29 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
-
-        // Preluăm toți parametrii query din request
-        $queryParams = $request->all();
-        // Nu mai acceptăm size=all, doar valoarea numerică transmisă de client
+        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2019.4/orders/tenders');
+        $queryParams = $request->except(['endpoint', 'x-tnx-auth0-tenant', 'x-tnx-org']);
+        $headers = [
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ];
+        foreach (
+            [
+                'x-tnx-auth0-tenant',
+                'x-tnx-org',
+            ] as $h
+        ) {
+            if ($request->hasHeader($h)) {
+                $headers[$h] = $request->header($h);
+            } elseif ($request->has($h)) {
+                $headers[$h] = $request->input($h);
+            }
+        }
 
         try {
-
-            // Folosește doar endpoint-ul de producție!
-            $resp = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
-            ])->timeout(30)->get('https://api.tnx.co.nz/v2019.4/orders/tenders', $queryParams);
+            $resp = Http::withHeaders($headers)
+                ->timeout(30)
+                ->get($endpoint, $queryParams);
 
             if ($resp->failed()) {
                 return response()->json([
