@@ -15,7 +15,7 @@ class SmartTenderingController extends Controller
     public function token(Request $request)
     {
         $username = $request->input('username', 'ted@bvbfreight.com');
-        $password = $request->input('password', 'Sasamba@2025$$');
+        $password = $request->input('password', 'Ddeveloper@2025');
         // Production client_id and audience
         $clientId = 'sC83pbj4C3kjlFJTuukNV6OKZ76ltqf9';
         $realm = 'Username-Password-Authentication';
