@@ -16,17 +16,13 @@ class SmartTenderingController extends Controller
     {
         $username = $request->input('username', 'ted@bvbfreight.com');
         $password = $request->input('password', 'Sasamba@2025$$');
-        $clientId = 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe';
+        // Production client_id and audience
+        $clientId = 'sC83pbj4C3kjlFJTuukNV6OKZ76ltqf9';
         $realm = 'Username-Password-Authentication';
         $grantType = 'http://auth0.com/oauth/grant-type/password-realm';
-
-        // Verifică ce API vrei să folosești:
-        // Pentru test: 'https://api.test.transport-ninja.com'
-        // Pentru producție: trebuie să afli audience-ul corect pentru api.tnx.co.nz
-        $audience = 'https://api.test.transport-ninja.com';
-
+        $audience = 'https://api.tnx.co.nz';
         $scope = 'openid';
-        $authUrl = 'https://transport-ninja.auth0.com/oauth/token';
+        $authUrl = 'https://tnxnz.au.auth0.com/oauth/token';
 
         $payload = [
             'client_id' => $clientId,
