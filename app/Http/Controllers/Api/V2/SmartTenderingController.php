@@ -15,7 +15,7 @@ class SmartTenderingController extends Controller
     public function token(Request $request)
     {
         $username = $request->input('username', 'ted@bvbfreight.com');
-        $password = $request->input('password', 'Ddeveloper@2025');
+        $password = $request->input('password', 'Sasamba@2025$$');
         $clientId = 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe';
         $realm = 'Username-Password-Authentication';
         $grantType = 'http://auth0.com/oauth/grant-type/password-realm';
@@ -105,15 +105,25 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
-        // Preluăm toți parametrii query din request
-        $queryParams = $request->all();
+        // Preluăm toți parametrii query din request, fără endpoint/x-tnx-org duplicat
+        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2019.4/orders/tenders');
+        $queryParams = $request->except(['endpoint', 'x-tnx-org']);
+
+        $headers = [
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ];
+        // Adaugă x-tnx-org dacă este prezent în request (conform doc TNX)
+        if ($request->hasHeader('x-tnx-org')) {
+            $headers['x-tnx-org'] = $request->header('x-tnx-org');
+        } elseif ($request->has('x-tnx-org')) {
+            $headers['x-tnx-org'] = $request->input('x-tnx-org');
+        }
 
         try {
-            // Folosește API-ul test care corespunde cu audience-ul din token
-            $resp = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
-            ])->timeout(30)->get('https://api.test.transport-ninja.com/v2019.4/orders/tenders', $queryParams);
+            $resp = Http::withHeaders($headers)
+                ->timeout(30)
+                ->get($endpoint, $queryParams);
 
             if ($resp->failed()) {
                 return response()->json([
