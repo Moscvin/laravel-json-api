@@ -33,7 +33,7 @@ Route::prefix('v2')->middleware('json.api')->group(function () {
     Route::post('/login', LoginController::class)->name('login');
     Route::post('/smart-tendering/token', [SmartTenderingController::class, 'token']);
     Route::get('/smart-tendering/me', [SmartTenderingController::class, 'getMe']);
-    Route::get('/smart-tendering/tender', [SmartTenderingController::class, 'getTenders']);
+    Route::get('/smart-tendering/tenders', [SmartTenderingController::class, 'getTenders']);
     Route::any('/smart-tendering/proxy/{path}', [SmartTenderingController::class, 'proxyRequest'])
         ->where('path', '.*');
 
