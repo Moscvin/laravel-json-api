@@ -105,8 +105,13 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
+
         // Preluăm toți parametrii query din request
         $queryParams = $request->all();
+        // Dacă size=all, îl transformăm într-o valoare mare (ex: 99999)
+        if (isset($queryParams['size']) && strtolower($queryParams['size']) === 'all') {
+            $queryParams['size'] = 99999;
+        }
 
         try {
             // Folosește API-ul test care corespunde cu audience-ul din token
