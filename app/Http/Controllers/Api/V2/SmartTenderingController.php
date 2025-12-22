@@ -145,8 +145,7 @@ class SmartTenderingController extends Controller
         }
 
         $method = strtolower($request->method());
-        // Folosește API-ul test care corespunde cu audience-ul din token
-        $url = 'https://api.test.transport-ninja.com/' . $path;
+        $url = 'https://api.tnx.co.nz/' . $path;
         $queryParams = $request->query();
         $bodyData = $request->all();
 
