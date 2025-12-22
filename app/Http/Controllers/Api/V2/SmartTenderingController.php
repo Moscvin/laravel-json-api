@@ -19,7 +19,12 @@ class SmartTenderingController extends Controller
         $clientId = 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe';
         $realm = 'Username-Password-Authentication';
         $grantType = 'http://auth0.com/oauth/grant-type/password-realm';
+
+        // Verifică ce API vrei să folosești:
+        // Pentru test: 'https://api.test.transport-ninja.com'
+        // Pentru producție: trebuie să afli audience-ul corect pentru api.tnx.co.nz
         $audience = 'https://api.test.transport-ninja.com';
+
         $scope = 'openid';
         $authUrl = 'https://transport-ninja.auth0.com/oauth/token';
 
@@ -104,10 +109,11 @@ class SmartTenderingController extends Controller
         $queryParams = $request->all();
 
         try {
+            // Folosește API-ul test care corespunde cu audience-ul din token
             $resp = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept' => 'application/json',
-            ])->timeout(30)->get('https://api.tnx.co.nz/v2019.4/orders/tenders', $queryParams);
+            ])->timeout(30)->get('https://api.test.transport-ninja.com/v2019.4/orders/tenders', $queryParams);
 
             if ($resp->failed()) {
                 return response()->json([
@@ -137,7 +143,8 @@ class SmartTenderingController extends Controller
         }
 
         $method = strtolower($request->method());
-        $url = 'https://api.tnx.co.nz/' . $path;
+        // Folosește API-ul test care corespunde cu audience-ul din token
+        $url = 'https://api.test.transport-ninja.com/' . $path;
         $queryParams = $request->query();
         $bodyData = $request->all();
 
