@@ -19,7 +19,7 @@ class SmartTenderingController extends Controller
         $clientId = $request->input('client_id', 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe');
         $realm = $request->input('realm', 'Username-Password-Authentication');
         $grantType = $request->input('grant_type', 'http://auth0.com/oauth/grant-type/password-realm');
-        $audience = $request->input('audience', 'https://api.tnx.co.nz');
+        $audience = $request->input('audience', 'https://api.test.transport-ninja.com');
         $scope = $request->input('scope', 'openid');
         $authUrl = $request->input('auth_url', 'https://transport-ninja.auth0.com/oauth/token');
 
@@ -66,7 +66,8 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
-        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2016.7/users/me');
+        // Default: endpoint de TEST
+        $endpoint = $request->input('endpoint', 'https://api.test.transport-ninja.com/v2016.7/users/me');
         $headers = [
             'Authorization' => 'Bearer ' . $token,
             'Accept' => 'application/json',
@@ -117,7 +118,8 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
-        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2019.4/orders/tenders');
+        // Default: endpoint de TEST
+        $endpoint = $request->input('endpoint', 'https://api.test.transport-ninja.com/v2019.4/orders/tenders');
         $queryParams = $request->except(['endpoint', 'x-tnx-auth0-tenant', 'x-tnx-org']);
         $headers = [
             'Authorization' => 'Bearer ' . $token,
