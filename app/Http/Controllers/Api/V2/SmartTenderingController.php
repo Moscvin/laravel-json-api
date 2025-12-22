@@ -15,13 +15,13 @@ class SmartTenderingController extends Controller
     public function token(Request $request)
     {
         $username = $request->input('username', 'ted@bvbfreight.com');
-        $password = $request->input('password', 'Sasamba@2025$$');
-        $clientId = $request->input('client_id', 'sC83pbj4C3kjlFJTuukNV6OKZ76ltqf9');
-        $realm = $request->input('realm', 'Username-Password-Authentication');
-        $grantType = $request->input('grant_type', 'http://auth0.com/oauth/grant-type/password-realm');
-        $audience = $request->input('audience', 'https://api.tnx.co.nz');
-        $scope = $request->input('scope', 'openid');
-        $authUrl = $request->input('auth_url', 'https://transport-ninja.auth0.com/oauth/token');
+        $password = $request->input('password', 'Ddeveloper@2025');
+        $clientId = 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe';
+        $realm = 'Username-Password-Authentication';
+        $grantType = 'http://auth0.com/oauth/grant-type/password-realm';
+        $audience = 'https://api.test.transport-ninja.com';
+        $scope = 'openid';
+        $authUrl = 'https://transport-ninja.auth0.com/oauth/token';
 
         $payload = [
             'client_id' => $clientId,
@@ -66,30 +66,12 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
-        // Default: endpoint de PRODUCTION
-        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2016.7/users/me');
-        $headers = [
-            'Authorization' => 'Bearer ' . $token,
-            'Accept' => 'application/json',
-        ];
-        // Permite headere custom pentru test (ex: x-tnx-auth0-tenant, x-tnx-org)
-        foreach (
-            [
-                'x-tnx-auth0-tenant',
-                'x-tnx-org',
-            ] as $h
-        ) {
-            if ($request->hasHeader($h)) {
-                $headers[$h] = $request->header($h);
-            } elseif ($request->has($h)) {
-                $headers[$h] = $request->input($h);
-            }
-        }
-
         try {
-            $resp = Http::withHeaders($headers)
-                ->timeout(30)
-                ->get($endpoint);
+            // Folosește API-ul test care corespunde cu audience-ul din token
+            $resp = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ])->timeout(30)->get('https://api.test.transport-ninja.com/v2016.7/users/me');
 
             if ($resp->failed()) {
                 return response()->json([
@@ -118,30 +100,14 @@ class SmartTenderingController extends Controller
             return response()->json(['error' => 'Missing authorization token'], 401);
         }
 
-        // Default: endpoint de PRODUCTION
-        $endpoint = $request->input('endpoint', 'https://api.tnx.co.nz/v2019.4/orders/tenders');
-        $queryParams = $request->except(['endpoint', 'x-tnx-auth0-tenant', 'x-tnx-org']);
-        $headers = [
-            'Authorization' => 'Bearer ' . $token,
-            'Accept' => 'application/json',
-        ];
-        foreach (
-            [
-                'x-tnx-auth0-tenant',
-                'x-tnx-org',
-            ] as $h
-        ) {
-            if ($request->hasHeader($h)) {
-                $headers[$h] = $request->header($h);
-            } elseif ($request->has($h)) {
-                $headers[$h] = $request->input($h);
-            }
-        }
+        // Preluăm toți parametrii query din request
+        $queryParams = $request->all();
 
         try {
-            $resp = Http::withHeaders($headers)
-                ->timeout(30)
-                ->get($endpoint, $queryParams);
+            $resp = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+            ])->timeout(30)->get('https://api.tnx.co.nz/v2019.4/orders/tenders', $queryParams);
 
             if ($resp->failed()) {
                 return response()->json([
