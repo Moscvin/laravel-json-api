@@ -15,8 +15,8 @@ class SmartTenderingController extends Controller
     public function token(Request $request)
     {
         $username = $request->input('username', 'ted@bvbfreight.com');
-        $password = $request->input('password', 'Devveloper@2025');
-        $clientId = $request->input('client_id', 'T8wRCMxqyBJHNkiF71yAKDGfsG5tmcSe');
+        $password = $request->input('password', 'Ddeveloper@2025');
+        $clientId = $request->input('client_id', 'sC83pbj4C3kjlFJTuukNV6OKZ76ltqf9');
         $realm = $request->input('realm', 'Username-Password-Authentication');
         $grantType = $request->input('grant_type', 'http://auth0.com/oauth/grant-type/password-realm');
         $audience = $request->input('audience', 'https://api.tnx.co.nz');
