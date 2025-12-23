@@ -21,13 +21,13 @@ class LoadSmart extends Model
         'hour_address_2',
         'type',
         'bid_amount',
+        'match_price'
     ];
 
     protected $casts = [
-        'hour_address_1' => 'datetime',
-        'hour_address_2' => 'datetime',
         'measure_value' => 'decimal:2',
         'bid_amount' => 'decimal:2',
+        'match_price' => 'decimal:2',
     ];
 
     public function changes()

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Models\LoadSmart;
+use Carbon\Carbon;
 
 class SmartTenderingController extends Controller
 {
@@ -145,6 +147,18 @@ class SmartTenderingController extends Controller
                 ], $resp->status());
             }
 
+            $tenders = $resp->json();
+            if (is_array($tenders)) {
+                foreach ($tenders as $tender) {
+                    $this->saveTenderToLoadSmart($tender);
+                }
+            } elseif (is_array($tenders) && count($tenders) === 0) {
+                // No tenders
+            } else {
+                // Single tender
+                $this->saveTenderToLoadSmart($tenders);
+            }
+
             return response()->json($resp->json());
         } catch (\Exception $e) {
             Log::error('SmartTendering getTenders proxy error: ' . $e->getMessage());
@@ -202,5 +216,45 @@ class SmartTenderingController extends Controller
                 'detail' => $e->getMessage()
             ], 502);
         }
+    }
+
+    private function saveTenderToLoadSmart($tender)
+    {
+        $idLoadSmart = $tender['uid'] ?? null;
+        if (!$idLoadSmart) return;
+
+        $measureName = $tender['max_measures'][0]['id'] ?? null;
+        $measureValue = $tender['max_measures'][0]['value'] ?? null;
+
+        $shortAddress1 = $tender['trip']['activities'][0]['end_state']['location']['short_address'] ?? null;
+        $shortAddress2 = $tender['trip']['activities'][1]['end_state']['location']['short_address'] ?? null;
+
+        $hourAddress1Str = $tender['trip']['activities'][0]['timing']['earliest_start'] ?? null;
+        $hourAddress2Str = $tender['trip']['activities'][1]['timing']['earliest_start'] ?? null;
+
+        $timezone1 = $tender['trip']['activities'][0]['end_state']['location']['timezone'] ?? 'UTC';
+        $timezone2 = $tender['trip']['activities'][1]['end_state']['location']['timezone'] ?? 'UTC';
+
+        $hourAddress1 = $hourAddress1Str ? Carbon::parse($hourAddress1Str)->setTimezone($timezone1)->format('m/d/Y,g:i A') : null;
+        $hourAddress2 = $hourAddress2Str ? Carbon::parse($hourAddress2Str)->setTimezone($timezone2)->format('m/d/Y,g:i A') : null;
+
+        $type = $tender['cargos'][0]['type'] ?? null;
+        $bidAmount = $tender['current_reply']['bid_amount'] ?? null;
+        $matchPrice = $tender['match_price'] ?? null;
+
+        LoadSmart::updateOrCreate(
+            ['id_load_smart' => $idLoadSmart],
+            [
+                'measure_name' => $measureName,
+                'measure_value' => $measureValue,
+                'short_address_1' => $shortAddress1,
+                'hour_address_1' => $hourAddress1,
+                'short_address_2' => $shortAddress2,
+                'hour_address_2' => $hourAddress2,
+                'type' => $type,
+                'bid_amount' => $bidAmount,
+                'match_price' => $matchPrice,
+            ]
+        );
     }
 }
