@@ -142,9 +142,9 @@ class LoadSmartCommand extends Command
             $matchedCount = 0;
 
             $query = [
+                'size' => 18,
                 'status' => 'MATCHED,LOCKED_FOR_MATCH',
                 'sort_type' => 'time_matched.desc',
-                'limit' => 500,
             ];
 
             $resp = Http::withHeaders($headers)
