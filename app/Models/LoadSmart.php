@@ -21,7 +21,8 @@ class LoadSmart extends Model
         'hour_address_2',
         'type',
         'bid_amount',
-        'match_price'
+        'match_price',
+        'status',
     ];
 
     protected $casts = [

@@ -66,14 +66,18 @@ class LoadSmartCommand extends Command
             $continuationKey = null;
 
             do {
-                $url = 'https://api.tnx.co.nz/v2019.4/orders/tenders';
+                $query = [
+                    'status' => 'CREATED,VALIDATED,AUCTION_ASSIGNED',
+                    'has_own_bid' => 'true',
+                    'sort_type' => 'time_created.desc',
+                ];
                 if ($continuationKey) {
-                    $url .= '?continuation_key=' . urlencode($continuationKey);
+                    $query['continuation_key'] = $continuationKey;
                 }
 
                 $resp = Http::withHeaders($headers)
                     ->timeout(30)
-                    ->get($url);
+                    ->get('https://api.tnx.co.nz/v2019.4/orders/tenders', $query);
 
                 if ($resp->failed()) {
                     $this->error('Failed to fetch tenders: ' . $resp->body());
@@ -172,6 +176,12 @@ class LoadSmartCommand extends Command
             return;
         }
 
+        // Check if tender already exists
+        if (LoadSmart::where('id_load_smart', $idLoadSmart)->exists()) {
+            Log::info('Skipping existing tender with uid: ' . $idLoadSmart);
+            return;
+        }
+
         Log::info('Processing tender with uid: ' . $idLoadSmart);
 
         $measureName = $tender['max_measures'][0]['id'] ?? null;
@@ -192,6 +202,7 @@ class LoadSmartCommand extends Command
         $type = $tender['cargos'][0]['type'] ?? null;
         $bidAmount = $tender['current_reply']['bid_amount'] ?? null;
         $matchPrice = $tender['match_price'] ?? null;
+        $status = $tender['status'] ?? null;
 
         LoadSmart::updateOrCreate(
             ['id_load_smart' => $idLoadSmart],
@@ -205,6 +216,7 @@ class LoadSmartCommand extends Command
                 'type' => $type,
                 'bid_amount' => $bidAmount,
                 'match_price' => $matchPrice,
+                'status' => $status,
             ]
         );
     }
