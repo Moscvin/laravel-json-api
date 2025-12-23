@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\LoadSmart;
+use App\Models\LoadSmartChanging;
 use Carbon\Carbon;
 
 class LoadSmartCommand extends Command
@@ -89,7 +90,7 @@ class LoadSmartCommand extends Command
                 $items = $tenders['data']['items'] ?? $tenders['items'] ?? [];
 
                 foreach ($items as $tender) {
-                    $this->saveTenderToLoadSmart($tender);
+                    $this->saveTenderToLoadSmart($tender, $token, $org);
                     $count++;
                 }
 
@@ -168,7 +169,7 @@ class LoadSmartCommand extends Command
         }
     }
 
-    private function saveTenderToLoadSmart($tender)
+    private function saveTenderToLoadSmart($tender, $token, $org)
     {
         $idLoadSmart = $tender['uid'] ?? null;
         if (!$idLoadSmart) {
@@ -177,13 +178,6 @@ class LoadSmartCommand extends Command
         }
 
         // Check if tender already exists
-        if (LoadSmart::where('id_load_smart', $idLoadSmart)->exists()) {
-            Log::info('Skipping existing tender with uid: ' . $idLoadSmart);
-            return;
-        }
-
-        Log::info('Processing tender with uid: ' . $idLoadSmart);
-
         $measureName = $tender['max_measures'][0]['id'] ?? null;
         $measureValue = $tender['max_measures'][0]['value'] ?? null;
 
@@ -204,9 +198,10 @@ class LoadSmartCommand extends Command
         $matchPrice = $tender['match_price'] ?? null;
         $status = $tender['status'] ?? null;
 
-        LoadSmart::updateOrCreate(
-            ['id_load_smart' => $idLoadSmart],
-            [
+        $existing = LoadSmart::where('id_load_smart', $idLoadSmart)->first();
+        if ($existing) {
+            // Update existing
+            $existing->update([
                 'measure_name' => $measureName,
                 'measure_value' => $measureValue,
                 'short_address_1' => $shortAddress1,
@@ -217,7 +212,74 @@ class LoadSmartCommand extends Command
                 'bid_amount' => $bidAmount,
                 'match_price' => $matchPrice,
                 'status' => $status,
-            ]
-        );
+            ]);
+            Log::info('Updated existing tender ' . $idLoadSmart . ' with status ' . $status);
+        } else {
+            // Create new
+            LoadSmart::create([
+                'id_load_smart' => $idLoadSmart,
+                'measure_name' => $measureName,
+                'measure_value' => $measureValue,
+                'short_address_1' => $shortAddress1,
+                'hour_address_1' => $hourAddress1,
+                'short_address_2' => $shortAddress2,
+                'hour_address_2' => $hourAddress2,
+                'type' => $type,
+                'bid_amount' => $bidAmount,
+                'match_price' => $matchPrice,
+                'status' => $status,
+            ]);
+            Log::info('Created new tender ' . $idLoadSmart . ' with status ' . $status);
+        }
+
+        // If status is AUCTION_ASSIGNED, fetch detailed info and save to changing table if values changed
+        if ($status === 'AUCTION_ASSIGNED') {
+            Log::info('Fetching details for AUCTION_ASSIGNED tender: ' . $idLoadSmart);
+            try {
+                $detailResp = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Accept' => 'application/json',
+                    'x-tnx-org' => $org
+                ])->timeout(30)->get("https://api.tnx.co.nz/v2019.4/orders/tenders/{$idLoadSmart}");
+
+                if ($detailResp->successful()) {
+                    $detail = $detailResp->json();
+                    $email = $detail['current_reply']['reply_by_user']['email'] ?? null;
+                    $priceOld = $detail['match_price'] ?? null;
+                    $priceNew = $detail['current_reply']['bid_amount'] ?? null;
+
+                    Log::info('Fetched details for ' . $idLoadSmart . ': email=' . $email . ', old=' . $priceOld . ', new=' . $priceNew);
+
+                    // Get the last entry for this id_load
+                    $lastEntry = LoadSmartChanging::where('id_load', $idLoadSmart)->orderBy('created_at', 'desc')->first();
+
+                    $shouldInsert = false;
+                    if (!$lastEntry) {
+                        $shouldInsert = true;
+                    } else {
+                        // Check if any value changed
+                        if ($lastEntry->email != $email || $lastEntry->price_old != $priceOld || $lastEntry->price_new != $priceNew) {
+                            $shouldInsert = true;
+                        }
+                    }
+
+                    if ($shouldInsert) {
+                        LoadSmartChanging::create([
+                            'id_load' => $idLoadSmart,
+                            'email' => $email,
+                            'price_old' => $priceOld,
+                            'price_new' => $priceNew,
+                        ]);
+                        Log::info('Inserted new changing record for ' . $idLoadSmart);
+                    } else {
+                        Log::info('No changes detected for ' . $idLoadSmart);
+                    }
+                } else {
+                    Log::warning('Failed to fetch details for tender: ' . $idLoadSmart . ' status: ' . $detailResp->status() . ' body: ' . $detailResp->body());
+                }
+            } catch (\Exception $e) {
+                Log::error('Error fetching details for tender ' . $idLoadSmart . ': ' . $e->getMessage());
+            }
+        }
     }
 }
