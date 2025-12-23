@@ -77,7 +77,7 @@ class LoadSmartCommand extends Command
                 }
 
                 $resp = Http::withHeaders($headers)
-                    ->timeout(30)
+                    ->timeout(300)
                     ->get('https://api.tnx.co.nz/v2019.4/orders/tenders', $query);
 
                 if ($resp->failed()) {
@@ -98,7 +98,73 @@ class LoadSmartCommand extends Command
                 Log::info('Continuation key: ' . ($continuationKey ?: 'null'));
             } while ($continuationKey);
 
-            $this->info("Processed {$count} tenders.");
+            $this->info("Processed {$count} active tenders.");
+
+            // Now fetch completed tenders to update status
+            $this->info('Fetching completed tenders for status updates...');
+            $updateCount = 0;
+            $continuationKey = null;
+
+            do {
+                $query = [
+                    'status' => 'SETTLED,INVOICED,CLOSED,DISPUTED',
+                    'sort_type' => 'time_matched.desc',
+                ];
+                if ($continuationKey) {
+                    $query['continuation_key'] = $continuationKey;
+                }
+
+                $resp = Http::withHeaders($headers)
+                    ->timeout(300)
+                    ->get('https://api.tnx.co.nz/v2019.4/orders/tenders', $query);
+
+                if ($resp->failed()) {
+                    $this->error('Failed to fetch completed tenders: ' . $resp->body());
+                    return 1;
+                }
+
+                $tenders = $resp->json();
+                $items = $tenders['data']['items'] ?? $tenders['items'] ?? [];
+
+                foreach ($items as $tender) {
+                    $this->updateTenderStatus($tender);
+                    $updateCount++;
+                }
+
+                $continuationKey = $tenders['data']['meta']['continuation_key'] ?? $tenders['meta']['continuation_key'] ?? null;
+                Log::info('Completed tenders continuation key: ' . ($continuationKey ?: 'null'));
+            } while ($continuationKey);
+
+            $this->info("Processed {$updateCount} completed tenders for status updates.");
+
+            // Now fetch recent matched/locked tenders to update status (last 100)
+            $this->info('Fetching recent matched/locked tenders for status updates...');
+            $matchedCount = 0;
+
+            $query = [
+                'status' => 'MATCHED,LOCKED_FOR_MATCH',
+                'sort_type' => 'time_matched.desc',
+                'limit' => 500,
+            ];
+
+            $resp = Http::withHeaders($headers)
+                ->timeout(300)
+                ->get('https://api.tnx.co.nz/v2019.4/orders/tenders', $query);
+
+            if ($resp->failed()) {
+                $this->error('Failed to fetch matched/locked tenders: ' . $resp->body());
+                return 1;
+            }
+
+            $tenders = $resp->json();
+            $items = $tenders['data']['items'] ?? $tenders['items'] ?? [];
+
+            foreach ($items as $tender) {
+                $this->updateTenderStatus($tender);
+                $matchedCount++;
+            }
+
+            $this->info("Processed {$matchedCount} recent matched/locked tenders for status updates.");
             return 0;
         } catch (\Exception $e) {
             $this->error('Error fetching tenders: ' . $e->getMessage());
@@ -122,7 +188,7 @@ class LoadSmartCommand extends Command
 
         try {
             $resp = Http::withHeaders($headers)
-                ->timeout(30)
+                ->timeout(300)
                 ->get($endpoint);
 
             return $resp->successful();
@@ -280,6 +346,23 @@ class LoadSmartCommand extends Command
             } catch (\Exception $e) {
                 Log::error('Error fetching details for tender ' . $idLoadSmart . ': ' . $e->getMessage());
             }
+        }
+    }
+
+    private function updateTenderStatus($tender)
+    {
+        $idLoadSmart = $tender['uid'] ?? null;
+        if (!$idLoadSmart) {
+            Log::warning('Skipping completed tender without uid');
+            return;
+        }
+
+        $status = $tender['status'] ?? null;
+
+        $existing = LoadSmart::where('id_load_smart', $idLoadSmart)->first();
+        if ($existing && $existing->status !== $status) {
+            $existing->update(['status' => $status]);
+            Log::info('Updated status for completed tender ' . $idLoadSmart . ' to ' . $status);
         }
     }
 }
