@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V2\ProfileController;
 use App\Http\Controllers\Api\V2\UpdatePasswordController;
 use App\Http\Controllers\Api\V2\UserManagementController;
 use App\Http\Controllers\Api\V2\AbLoadController;
+use App\Http\Controllers\Api\V2\LoadSmartController;
 use App\Http\Controllers\Api\V2\SmartTenderingController;
 use LaravelJsonApi\Laravel\Facades\JsonApiRoute;
 use LaravelJsonApi\Laravel\Http\Controllers\JsonApiController;
@@ -71,4 +72,6 @@ Route::prefix('v2')->middleware('auth.token')->group(function () {
     Route::post('/loads/show', [AbLoadController::class, 'show']);
     Route::post('/loads/{id}', [AbLoadController::class, 'update']);
     Route::delete('/loads/{id}', [AbLoadController::class, 'destroy']);
+    Route::post('/loadsmart', [LoadSmartController::class, 'show']);
+    Route::get('/loadsmart', [LoadSmartController::class, 'index']);
 });

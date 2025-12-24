@@ -34,4 +34,17 @@ WORKDIR /var/www
 
 EXPOSE 9000
 
-CMD ["php-fpm"]
+# === CRON SETUP ===
+RUN apt-get update && apt-get install -y cron && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/log/laravel
+
+# Job cron cu calea completă la php
+RUN echo "* * * * * cd /var/www/html && /usr/local/bin/php artisan import:loadsmart >> /var/log/laravel/cron.log 2>&1" > /etc/cron.d/laravel-import
+
+RUN chmod 0644 /etc/cron.d/laravel-import
+
+RUN crontab /etc/cron.d/laravel-import
+
+# Pornește cron în background + php-fpm ca proces principal
+CMD exec cron -f & php-fpm
